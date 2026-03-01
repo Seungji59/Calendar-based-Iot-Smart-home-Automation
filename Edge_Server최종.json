@@ -1,0 +1,377 @@
+[
+    {
+        "id": "d45ec001c84d7414",
+        "type": "tab",
+        "label": "플로우 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "a0ea755f0b4d92be",
+        "type": "io7 out",
+        "z": "d45ec001c84d7414",
+        "authentication": "c701597c48559dfd",
+        "name": "lamp3",
+        "deviceId": "lamp3",
+        "cmd": "",
+        "fmt": "json",
+        "qos": "0",
+        "retain": "false",
+        "x": 990,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "a20a2c327a5141ec",
+        "type": "io7 in",
+        "z": "d45ec001c84d7414",
+        "name": "button3",
+        "deviceId": "button3",
+        "authentication": "c701597c48559dfd",
+        "evt": "+",
+        "fmt": "json",
+        "qos": "0",
+        "allDevices": false,
+        "allEvents": true,
+        "allFormats": false,
+        "x": 430,
+        "y": 600,
+        "wires": [
+            [
+                "9a4839bb3054f1a6"
+            ]
+        ]
+    },
+    {
+        "id": "9a4839bb3054f1a6",
+        "type": "function",
+        "z": "d45ec001c84d7414",
+        "name": "외출 button",
+        "func": "/*\nlet out1 = null;\nlet out2 = null;\n\n// 🔹 global에 저장된 target 값 가져오기 (없으면 0으로)\nlet savedTarget = global.get(\"target\");\nif (savedTarget === undefined) savedTarget = 0;\n\n// 🔸 이전 버튼 상태 가져오기 → flow context 사용\nlet prevButton = flow.get(\"prevButton\");\nlet currButton = msg.payload.d.button;\n\n\n\n// 🔸 버튼 변화가 없다면 → target 변경 없음\nif (prevButton === currButton) {\n    if (currButton === 'on') {\n        out1 = { payload: { d: { lamp: \"on\" } } };\n    } else if (currButton === 'off') {\n        out1 = { payload: { d: { lamp: \"off\" } } };\n    }\n    // ⭐ currButton 글로벌로 저장\n    global.set(\"currButton\", currButton);\n\n    return [out1, null];\n}\n\n// 🔸 버튼이 변화한 순간에만 target 변경\nif (currButton === 'on') {\n    // out1 = { payload: { d: { lamp: \"off\" } } };\n    savedTarget -= 2;\n    global.set(\"currButton\", currButton);\n}\n\nif (currButton === 'off') {\n    // out1 = { payload: { d: { lamp: \"on\" } } };\n    savedTarget += 2;\n}\n\n// 🔸 변경된 target은 global에 저장\nglobal.set(\"target\", savedTarget);\n\n// 🔸 버튼 상태는 flow에 저장\nflow.set(\"prevButton\", currButton);\n\n// 🔸 ESP32로 target 전달\nout2 = {\n    payload: {\n        d: { target: savedTarget }\n    }\n};\n\nreturn [out1, out2];\n*/\n\nlet out1 = null;\nlet out2 = null;\n\nlet saved_light=global.get(\"lamp\");\n\n// 🔹 global에 저장된 target 값 가져오기 (없으면 0으로)\nlet savedTarget = global.get(\"target\");\nif (savedTarget === undefined) savedTarget = 0;\n\n// 🔸 이전 버튼 상태 가져오기 → flow context 사용\nlet prevButton = flow.get(\"prevButton\");\nlet currButton = msg.payload.d.button;\n\n// 🔸 버튼이 변화한 순간에만 target 변경\nif (currButton === 'on') {\n    savedTarget -= 2;\n    out1 = { payload: { d: { lamp: \"off\" } } };\n}\n\nif (currButton === 'off') {\n    savedTarget += 2;\n    out1 = { payload: { d: { lamp: saved_light } } };\n}\n\n// ⭐ currButton을 global 저장 (on/off 모두!)\nglobal.set(\"currButton\", currButton);\n\n// 🔸 변경된 target은 global에 저장\nglobal.set(\"target\", savedTarget);\n\n// 🔸 버튼 상태는 flow에 저장\nflow.set(\"prevButton\", currButton);\n\n// 🔸 ESP32로 target 전달\nout2 = {\n    payload: {\n        d: { target: savedTarget }\n    }\n};\n\nreturn [out1, out2];\n\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 690,
+        "y": 600,
+        "wires": [
+            [
+                "a0ea755f0b4d92be"
+            ],
+            [
+                "79927cf5135e8168"
+            ]
+        ]
+    },
+    {
+        "id": "4382e89fa81e7e4e",
+        "type": "io7 in",
+        "z": "d45ec001c84d7414",
+        "name": "",
+        "deviceId": "thermostat2",
+        "authentication": "c701597c48559dfd",
+        "evt": "status",
+        "fmt": "json",
+        "qos": "0",
+        "allDevices": false,
+        "allEvents": false,
+        "allFormats": false,
+        "x": 430,
+        "y": 260,
+        "wires": [
+            [
+                "82c3334af2311953",
+                "e8ef82cbf87e164b"
+            ]
+        ]
+    },
+    {
+        "id": "e8ef82cbf87e164b",
+        "type": "function",
+        "z": "d45ec001c84d7414",
+        "name": "automate",
+        "func": "// global에서 trip 상태 읽기\nlet tripState = global.get(\"tripState\") || \"untrip\"; //Trip 상태가 아직 설정되지 않은 경우에도 안전하게 \"untrip\"으로 초기화\n\nglobal.set(\"target\", msg.payload.d.target);\n\n// 1) 여행 중이면 자동 밸브 제어 중단\nif (tripState === \"trip\") {\n    //node.warn(\"Trip 상태 → 온도 자동제어 중단. 밸브를 변경하지 않음.\");\n    return null;   // 메시지 전달 X\n}\nelse{\n    // 2) 여행 중이 아니면 기존 온도 제어 로직 실행\n    let evt1 = { d: {} };\n\n    if (msg.payload.d.target > msg.payload.d.temperature) {\n        evt1.d.valve = 'on';\n    } else {\n        evt1.d.valve = 'off';\n    }\n\n    return { payload: evt1 };\n}\n\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 260,
+        "wires": [
+            [
+                "64ff5627518e9f00",
+                "3b46d6bd49f4e9ad"
+            ]
+        ]
+    },
+    {
+        "id": "3b11c311eee6921e",
+        "type": "io7 out",
+        "z": "d45ec001c84d7414",
+        "authentication": "c701597c48559dfd",
+        "name": "",
+        "deviceId": "valve2",
+        "cmd": "power",
+        "fmt": "json",
+        "qos": "0",
+        "retain": "false",
+        "x": 1050,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "82c3334af2311953",
+        "type": "debug",
+        "z": "d45ec001c84d7414",
+        "name": "debug 6",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 611,
+        "y": 325,
+        "wires": []
+    },
+    {
+        "id": "64ff5627518e9f00",
+        "type": "debug",
+        "z": "d45ec001c84d7414",
+        "name": "debug 7",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 971,
+        "y": 205,
+        "wires": []
+    },
+    {
+        "id": "b7e9fa32c2e1abe3",
+        "type": "io7 in",
+        "z": "d45ec001c84d7414",
+        "name": "",
+        "deviceId": "valve2",
+        "authentication": "c701597c48559dfd",
+        "evt": "+",
+        "fmt": "json",
+        "qos": "0",
+        "allDevices": false,
+        "allEvents": true,
+        "allFormats": false,
+        "x": 410,
+        "y": 140,
+        "wires": [
+            [
+                "3fa45592b768d0a9",
+                "e0c1ed82a14c061d"
+            ]
+        ]
+    },
+    {
+        "id": "1baf2bbf8b9ede0b",
+        "type": "debug",
+        "z": "d45ec001c84d7414",
+        "name": "debug 8",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "3fa45592b768d0a9",
+        "type": "function",
+        "z": "d45ec001c84d7414",
+        "name": "trip값 글로벌로 저장",
+        "func": "// msg.payload.d.trip: \"trip\" 또는 \"untrip\"이 들어온다고 가정\nif (msg.payload && msg.payload.d && msg.payload.d.trip) {\n    global.set(\"tripState\", msg.payload.d.trip);\n    //node.warn(\"Trip 상태를 global로 저장: \" + msg.payload.d.trip);\n}\nreturn msg;  // 필요하면 다음 노드로 전달, 아니면 null 가능\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 140,
+        "wires": [
+            [
+                "1baf2bbf8b9ede0b"
+            ]
+        ]
+    },
+    {
+        "id": "79927cf5135e8168",
+        "type": "io7 out",
+        "z": "d45ec001c84d7414",
+        "authentication": "c701597c48559dfd",
+        "name": "",
+        "deviceId": "thermostat2",
+        "cmd": "",
+        "fmt": "json",
+        "qos": "0",
+        "retain": "false",
+        "x": 1010,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "3b46d6bd49f4e9ad",
+        "type": "function",
+        "z": "d45ec001c84d7414",
+        "name": "function 2",
+        "func": "msg.payload = {\n    d: {\n        valve: msg.payload.d.valve  // 중첩 없이 기존 valve 값만 전달\n    }\n};\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 260,
+        "wires": [
+            [
+                "3b11c311eee6921e"
+            ]
+        ]
+    },
+    {
+        "id": "e0c1ed82a14c061d",
+        "type": "debug",
+        "z": "d45ec001c84d7414",
+        "name": "debug 9",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 620,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "efbe6381fecd9040",
+        "type": "io7 out",
+        "z": "d45ec001c84d7414",
+        "authentication": "c701597c48559dfd",
+        "name": "lamp3",
+        "deviceId": "lamp3",
+        "cmd": "power",
+        "fmt": "json",
+        "qos": "0",
+        "retain": "false",
+        "x": 990,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "953f3325d63b9947",
+        "type": "io7 in",
+        "z": "d45ec001c84d7414",
+        "name": "switch3",
+        "deviceId": "switch3",
+        "authentication": "c701597c48559dfd",
+        "evt": "+",
+        "fmt": "json",
+        "qos": "0",
+        "allDevices": false,
+        "allEvents": true,
+        "allFormats": false,
+        "x": 430,
+        "y": 680,
+        "wires": [
+            [
+                "25ee795ea635af53",
+                "22d9dec5a2abc266"
+            ]
+        ]
+    },
+    {
+        "id": "25ee795ea635af53",
+        "type": "function",
+        "z": "d45ec001c84d7414",
+        "name": "전등 switch",
+        "func": "// switch_lamp 상태 확인\nlet currButton = global.get(\"currButton\");\n\n\nif (currButton === \"off\") {\n    // switch 값을 읽음\n    let sw = msg.payload.d.switch;  // \"on\" 또는 \"off\"\n\n    // lamp에 switch 값을 그대로 전달\n    msg.payload = {\n        d: {\n            lamp: sw\n        }\n    };\n    global.set(\"lamp\", sw);\n}\nelse {\n    // 버튼이 on이면 lamp를 강제 off\n    msg.payload = {\n        d: {\n            lamp: \"off\"\n        }\n    };\n    global.set(\"lamp\", \"off\");\n}\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 690,
+        "y": 680,
+        "wires": [
+            [
+                "d23c5d7fe9505e6b",
+                "efbe6381fecd9040"
+            ]
+        ]
+    },
+    {
+        "id": "d23c5d7fe9505e6b",
+        "type": "debug",
+        "z": "d45ec001c84d7414",
+        "name": "debug 11",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 760,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "22d9dec5a2abc266",
+        "type": "debug",
+        "z": "d45ec001c84d7414",
+        "name": "debug 12",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 520,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "c701597c48559dfd",
+        "type": "io7-hub",
+        "name": "",
+        "host": "mqtt",
+        "useTLS": false,
+        "knownPort": true,
+        "port": "1883",
+        "tls": "",
+        "clientid": ""
+    },
+    {
+        "id": "a459a035aef983ee",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-io7": "0.1.8"
+        }
+    }
+]
