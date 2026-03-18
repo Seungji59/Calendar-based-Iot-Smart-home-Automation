@@ -1,5 +1,5 @@
 # Calendar-based-Iot-Smart-home-Automation
-
+<img width="864" height="527" alt="image" src="https://github.com/user-attachments/assets/68c65775-f6be-49f1-8a2f-124e0faab84c" />
 <img width="1299" height="700" alt="image" src="https://github.com/user-attachments/assets/1a57391c-8467-48b0-8553-ea320dcec328" />
 
 
